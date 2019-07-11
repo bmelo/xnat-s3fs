@@ -1,0 +1,59 @@
+version: '3.7'
+
+services:
+  smtp:
+    image: namshi/smtp
+    restart: always
+    env_file:
+      - .env_smtp
+
+  db:
+    image: postgres:9
+    restart: always
+    env_file:
+      - .env_db
+    volumes:
+      - ./data/xnatdb/data:/var/lib/postgresql/data
+#    mem_limit: 4G
+
+  web:
+    image: idor/xnat:${XNAT_VERSION:-prod}
+    restart: always
+    build:
+      context: ./xnat
+    depends_on:
+      - db
+      # - s3
+    ports:
+      - 8080:8080
+      - "8104:8104"
+    devices:
+      - /dev/fuse:/dev/fuse:rwm
+    security_opt:
+      - "apparmor:unconfined"
+    cap_add:
+      - MKNOD
+      - SYS_ADMIN
+    env_file:
+      - .env
+    volumes:
+      - ./data/xnat/prearchive:/data/xnat/prearchive
+ #     - ./s3/archived:/data/xnat/archive:rslave
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # s3:
+  #   image: idor/s3nfs
+  #   restart: always
+  #   build:
+  #     context: ./s3
+  #   devices:
+  #     - /dev/fuse:/dev/fuse:rwm
+  #   security_opt:
+  #     - "apparmor:unconfined"
+  #   cap_add:
+  #     - MKNOD
+  #     - SYS_ADMIN
+  #   env_file:
+  #     - .env
+#    volumes:
+#      - ./s3/archived:/mnt:rshared
